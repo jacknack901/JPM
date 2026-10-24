@@ -182,8 +182,11 @@ body{font-size:15px}button,input,select,textarea{font-size:16px}
  <div id="content"></div>
  <footer class="siteFooter"><span>© <span id="footerShop">瘋Toys 動漫公仔周邊</span> · 日圓換算報價 <span id="footerRate">×0.25</span> · 運費另計 · V9.6</span><button class="adminSecret" aria-label="開啟店主後台" title="店主" onclick="openAdmin()">⚙</button></footer>
 </main><div id="adminOverlay" hidden class="adminOverlay" onclick="if(event.target===this)closeAdmin()"><aside class="adminDrawer" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><header class="adminTop"><div><small>MANAGEMENT</small><h2 id="adminTitle">店主後台</h2></div><button class="closeAdmin" aria-label="關閉後台" onclick="closeAdmin()">✕</button></header><div id="adminSurface"></div></aside></div><div id="toast" hidden class="flash"></div>
-<script src="../config.js"></script>
-<script src="../bridge-client.js"></script>
+<script>
+// JPM V9.6.2：此網頁直接指定已確認的 GAS 部署網址，避免舊 config.js 快取導致未連線。
+window.NIGHT_GAS_EXEC_URL="https://script.google.com/macros/s/AKfycbwb5_IiyDABNJQ8uLxcvHViLnfpBz--sQrdTfeU_PSNKaz5YvAX8LDK3OSWX4GjZ76x/exec";
+</script>
+<script src="../bridge-client.js?v=20261024-jpm-962"></script>
 <script>
 'use strict';
 const SHOP_CHANNEL=document.body.dataset.channel==='partner'?'partner':'wanye';

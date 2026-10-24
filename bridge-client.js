@@ -41,7 +41,7 @@
  });
  function start(){
   if(!configured()){
-   status('尚未連接商城資料：請先在 GitHub 的 config.js 設定 GAS /exec 網址',true);return;
+   status('GAS 網址未正確載入，請覆蓋新版 index.html 與 funtoys/index.html，並使用新版網址重新開啟。',true);return;
   }
   status('正在連接商城資料…');
   frame=document.createElement('iframe');
@@ -50,7 +50,7 @@
   frame.style.cssText='position:absolute;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
   var u=new URL(endpoint);u.searchParams.set('bridge','1');u.searchParams.set('origin',location.origin);u.searchParams.set('nonce',nonce);
   frame.src=u.toString();document.body.appendChild(frame);
-  setTimeout(function(){if(!ready)status('連線逾時：請檢查 GAS 新版本已部署、GITHUB_ALLOWED_ORIGIN 設定，以及瀏覽器是否阻擋第三方框架',true);},16000);
+  setTimeout(function(){if(!ready)status('GAS 連線逾時：請確認 Code.gs 使用 V9.6 橋接、允許 https://jacknack901.github.io、重新部署新版本；部分瀏覽器可能封鎖第三方框架。',true);},16000);
  }
  window.NightBridge={
   rpc:function(action,arg){
