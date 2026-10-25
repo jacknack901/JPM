@@ -270,7 +270,7 @@ body{font-size:15px}button,input,select,textarea{font-size:16px}
 @media(max-width:360px){.vendorStats{gap:6px}.vendorStat{padding:10px 8px}.vendorStat strong{font-size:16px}.vendorOrderRow{gap:8px}.vendorMoneyColumns b{font-size:12px}}
 
 
-/* V10.0.3 LINE 內建瀏覽器安全結帳：使用網頁對話框，不使用 window.confirm()。 */
+/* V10.4 LINE 內建瀏覽器安全結帳：使用網頁對話框，不使用 window.confirm()。 */
 .checkoutDialogOverlay{position:fixed;inset:0;z-index:1200;background:rgba(20,13,32,.67);display:flex;align-items:center;justify-content:center;padding:16px;overscroll-behavior:contain}
 .checkoutDialogCard{width:min(100%,490px);max-height:min(88dvh,720px);overflow-y:auto;border-radius:20px;padding:24px;background:#fff;color:#241a31;box-shadow:0 22px 65px #0005;border:1px solid #e9e1f1}
 .checkoutDialogCard h2{margin:0 0 10px;font-size:22px;color:#2a173e;line-height:1.3}
@@ -288,12 +288,18 @@ body{font-size:15px}button,input,select,textarea{font-size:16px}
 @keyframes checkoutSpin{to{transform:rotate(360deg)}}
 .checkoutDialogCard button:focus-visible{outline:3px solid #ab81db;outline-offset:2px}
 @media(max-width:550px){.checkoutDialogOverlay{padding:12px;align-items:center}.checkoutDialogCard{padding:19px 16px;border-radius:17px;max-height:86dvh}.checkoutDialogCard h2{font-size:20px}.checkoutDialogActions{grid-template-columns:1fr 1fr}.checkoutDialogActions button{font-size:14px}}
+/* V10.4 多廠商分帳選擇 */
+.vendorBrandChooser{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin:12px 0 15px;padding:12px;border:1px solid #796297;background:#30263c;border-radius:12px}
+.vendorBrandChooser label{font-weight:800;font-size:13px;color:#edddff}
+.vendorBrandChooser select{font-size:15px!important;background:#f6f0ff!important;color:#301949!important;border:2px solid #ab8bd5!important;border-radius:10px;padding:10px 14px!important;min-width:180px}
+.vendorBrandChooser small{font-size:11px;color:#dfd1ee}
+@media(max-width:600px){.vendorBrandChooser select{width:100%}}
 </style></head>
 <body data-channel="wanye" data-shop-name="頑夜 TOY"><main class="wrap">
  <header class="brand"><div><h1 id="shopBrand">頑夜 TOY</h1><small>JAPAN LIVE · 大阪連線</small></div><span class="headerTag" id="shopBadge">大阪連線</span></header>
  <nav class="nav"><button id="tabShop" onclick="switchTab('shop')" class="active">逛商品</button><button id="tabCart" onclick="switchTab('cart')">購物車 <span id="cartCount">0</span></button><button id="tabOrder" onclick="switchTab('order')">查詢訂單</button></nav>
  <div id="content"></div>
- <footer class="siteFooter"><span>© <span id="footerShop">頑夜 TOY</span> · 日圓換算報價 <span id="footerRate">×0.25</span> · 運費另計 · V10.0.3</span><button class="adminSecret" aria-label="開啟店主後台" title="店主" onclick="openAdmin()">⚙</button></footer>
+ <footer class="siteFooter"><span>© <span id="footerShop">頑夜 TOY</span> · 日圓換算報價 <span id="footerRate">×0.25</span> · 運費另計 · V10.4</span><button class="adminSecret" aria-label="開啟店主後台" title="店主" onclick="openAdmin()">⚙</button></footer>
 </main><div id="adminOverlay" hidden class="adminOverlay" onclick="if(event.target===this)closeAdmin()"><aside class="adminDrawer" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><header class="adminTop"><div><small>MANAGEMENT</small><h2 id="adminTitle">店主後台</h2></div><button class="closeAdmin" aria-label="關閉後台" onclick="closeAdmin()">✕</button></header><div id="adminSurface"></div></aside></div><div id="toast" hidden class="flash"></div>
 <script>
 // JPM V9.6.2：此網頁直接指定已確認的 GAS 部署網址，避免舊 config.js 快取導致未連線。
@@ -302,8 +308,8 @@ window.NIGHT_GAS_EXEC_URL="https://script.google.com/macros/s/AKfycbwb5_IiyDABNJ
 <script src="bridge-client.js?v=20261025-v97"></script>
 <script>
 'use strict';
-const SHOP_CHANNEL=document.body.dataset.channel==='partner'?'partner':'wanye';
-const SHOP_RATE=SHOP_CHANNEL==='partner'?0.27:0.25;
+const SHOP_CHANNEL=['wanye','partner','xiangwan','marushima'].includes(document.body.dataset.channel)?document.body.dataset.channel:'wanye';
+const SHOP_RATE=SHOP_CHANNEL==='wanye'?0.25:0.27;
 const SHOP_LABEL=document.body.dataset.shopName||(SHOP_CHANNEL==='partner'?'瘋Toys 動漫公仔周邊':'頑夜 TOY');
 const SHOP_PREFIX='wanye_japan_'+SHOP_CHANNEL+'_';
 const state={tab:'shop',items:[],total:0,offset:0,search:'',store:'',category:'',cart:[],token:'',lastOrder:null,adminProducts:[],adminProductOffset:0,adminProductDraft:true,adminStoreFilter:'',adminCategoryFilter:'',adminOrders:[],adminInfo:null,syncMessage:'',driveOpen:false,bulkOpen:false};
@@ -316,7 +322,7 @@ const money=n=>'NT$'+Number(n||0).toLocaleString('zh-TW'), yen=n=>'¥'+Number(n|
 const statusName={REQUESTED:'待確認是否買得到',AWAITING_PAYMENT:'請在1小時內轉台幣全額',PAYMENT_REPORTED:'已回報全額匯款／待核帳',PAID:'全額已確認／待採購',BOUGHT:'店家已購得・準備配送',SHIPPING_SELECTED:'已選好配送方式',SHIPPED:'已出貨',COMPLETED:'已完成',UNAVAILABLE:'目前無法購得',CANCELLED:'轉帳逾時取消',REFUND_PENDING:'缺貨待退款'};
 const payModeLabel=mode=>mode==='DIRECT'?'下單立即付款':'先確認有貨再付款';
 const shipName={SHARED:SHOP_CHANNEL==='partner'?'一起集運到瘋Toys':'一起集運到頑夜店內',POST:'日本郵局寄台灣（舊訂單・方式未細分）',EMS:'EMS 國際快捷',AIR:'日本空運（國際小包）',SEA:'日本海運（國際小包）'};
-function shipLabel(type,ch){return type==='SHARED'?(ch==='partner'?'一起集運到瘋Toys':'一起集運到頑夜店內'):(shipName[type]||'待店家確認');}
+function shipLabel(type,ch){const shops={wanye:'頑夜店內',partner:'瘋Toys',xiangwan:'享頑一番',marushima:'丸島賞'};return type==='SHARED'?'一起集運到'+(shops[ch]||'頑夜店內'):(shipName[type]||'待店家確認');}
 
 // 日本郵便第一地帶（中國／韓國／台灣），官方公開重量級距參考；價格非本店運費報價。
 const JP_POST_RATES={
@@ -685,7 +691,7 @@ function drawOrder(o,target){
  const payNote=o.paymentGroup?`<p class="hint">合併匯款 ${o.paymentGroup.count} 筆・總額 ${money(o.paymentGroup.amountTwd)}；每筆訂單各自保留紀錄</p>`:'';
  const groupNote=o.shipmentGroupId?`<p class="hint">已合併配送：${H(o.shipmentGroupId)}${o.shipmentLeader?'（合併主單，運費以本單報價）':'（運費由合併主單統一報價）'}</p>`:'';
  const items=o.items.map(i=>`<div class="orderLine"><span class="orderItemWithImage"><img src="${THUMB_PLACEHOLDER}" data-photo-id="${H(i.id)}" alt="商品" loading="lazy">商品 × ${i.qty}</span><b>${yen(i.qty*i.price)}</b></div>`).join('');
- target.innerHTML=`<section class="panel orderCard"><div class="orderHeader"><span class="tag">${H(o.statusLabel)}</span><small>${date(o.createdAt)}</small></div>${items}<div class="totalRow"><span>日圓商品總額</span><b>${yen(o.totalJpy)}</b></div><div class="totalRow totalPay"><span>台幣商品全額</span><b>${money(o.amountTwd)}</b></div><p class="hint">配送：${H(shipLabel(o.shippingType,o.salesChannel||SHOP_CHANNEL))}</p>${payNote}${groupNote}${o.freight!==null?`<p class="hint">國際運費報價：${o.freightJpy!==null?yen(o.freightJpy)+' × '+Number(o.freightFxRate|| (o.salesChannel==='partner'?0.27:0.25)).toFixed(2)+' ＝ ':''}${money(o.freight)}</p>`:''}${o.tracking?`<p class="hint">寄件資訊：${H(o.tracking)}</p>`:''}${o.status==='REFUND_PENDING'?`<div class="refundContact" role="status"><b>此筆訂單待退款</b><p>請聯絡店主處理退款，LINE ID：<strong>${H(o.refundLineId||(o.salesChannel==='partner'?'@554hjwxv':'NIGHTSTORE'))}</strong></p><button type="button" data-refund-line="${H(o.refundLineId||(o.salesChannel==='partner'?'@554hjwxv':'NIGHTSTORE'))}">複製 LINE ID</button></div>`:o.status==='UNAVAILABLE'?'<p class="error">商品無法購得。如已匯款，請聯絡店主確認。</p>':''}${extra}</section>`;
+ target.innerHTML=`<section class="panel orderCard"><div class="orderHeader"><span class="tag">${H(o.statusLabel)}</span><small>${date(o.createdAt)}</small></div>${items}<div class="totalRow"><span>日圓商品總額</span><b>${yen(o.totalJpy)}</b></div><div class="totalRow totalPay"><span>台幣商品全額</span><b>${money(o.amountTwd)}</b></div><p class="hint">配送：${H(shipLabel(o.shippingType,o.salesChannel||SHOP_CHANNEL))}</p>${payNote}${groupNote}${o.freight!==null?`<p class="hint">國際運費報價：${o.freightJpy!==null?yen(o.freightJpy)+' × '+Number(o.freightFxRate|| (o.salesChannel==='wanye'?0.25:0.27)).toFixed(2)+' ＝ ':''}${money(o.freight)}</p>`:''}${o.tracking?`<p class="hint">寄件資訊：${H(o.tracking)}</p>`:''}${o.status==='REFUND_PENDING'?`<div class="refundContact" role="status"><b>此筆訂單待退款</b><p>請聯絡店主處理退款，LINE ID：<strong>${H(o.refundLineId||(o.salesChannel==='partner'?'@554hjwxv':'NIGHTSTORE'))}</strong></p><button type="button" data-refund-line="${H(o.refundLineId||(o.salesChannel==='partner'?'@554hjwxv':'NIGHTSTORE'))}">複製 LINE ID</button></div>`:o.status==='UNAVAILABLE'?'<p class="error">商品無法購得。如已匯款，請聯絡店主確認。</p>':''}${extra}</section>`;
  hydrateThumbs(target,false);const btn=target.querySelector('[data-payment-id]');if(btn)btn.onclick=()=>paymentNow(o.id,target);const gb=target.querySelector('[data-payment-group]');if(gb)gb.onclick=()=>combinedPaymentNow(gb.dataset.paymentGroup,target);const refundBtn=target.querySelector('[data-refund-line]');if(refundBtn)refundBtn.onclick=()=>copyText(refundBtn.dataset.refundLine);
 }
 async function paymentNow(id,box){
@@ -872,7 +878,7 @@ async function bulkClassifyNow(type){
 async function bulkNow(){const ids=[...document.querySelectorAll('.pickProduct:checked')].map(x=>x.value);if(!ids.length)return notify('請先勾選商品',true);if(!confirm(`將${ids.length}項商品統一標價並上架？`))return;
  try{const x=await rpc('bulkPrice',{token:state.token,ids,price:$('#bulkValue').value});notify(`已更新 ${x.count} 筆商品`);await adminProducts();}catch(e){notify(e.message,true);}}
 const actionList={REQUESTED:[['available','✅ 可以購買／開始60分鐘倒數'],['unavailable','❌ 無法購買']],AWAITING_PAYMENT:[['unavailable','❌ 無法購買']],PAYMENT_REPORTED:[['paid','✅ 已收到台幣商品全額'],['rejectPayment','匯款資料不符']],PAID:[['bought','✅ 我已買到商品'],['unavailable','缺貨待退款']],BOUGHT:[['shipped','✅ 已出貨'],['unavailable','缺貨待退款']],SHIPPING_SELECTED:[['shipped','✅ 已出貨']],SHIPPED:[['completed','✅ 已完成']]};
-function pendingSelection(){const ch=$('#pendingChannel')?.value||'wanye';return {channel:ch,shop:ch==='partner'?'合作廠商':'頑夜',queue:state.pendingQueue?.channels?.[ch]||{count:0,tails:[]}};}
+function pendingSelection(){const ch=$('#pendingChannel')?.value||'wanye';return {channel:ch,shop:({wanye:'頑夜',partner:'瘋Toys',xiangwan:'享頑一番',marushima:'丸島賞'}[ch]||'商城'),queue:state.pendingQueue?.channels?.[ch]||{count:0,tails:[]}};}
 function copyPendingTails(){
  const tails=[...new Set(pendingSelection().queue.tails||[])];
  if(!tails.length)return notify('目前沒有待匯款訂單，請先重新整理訂單',true);
@@ -888,8 +894,8 @@ async function adminOrders(){
  const [os,queue]=await Promise.all([rpc('adminOrders',{token:state.token}),rpc('pendingPayments',{token:state.token})]);state.adminOrders=os;state.pendingQueue=queue;
  const paymentGroups=new Map();os.forEach(o=>{if(o.paymentGroupId){const g=String(o.paymentGroupId);if(!paymentGroups.has(g))paymentGroups.set(g,[]);paymentGroups.get(g).push(o);}});
  const pending=os.filter(o=>o.status==='AWAITING_PAYMENT'),tails=[...new Set(pending.map(o=>String(o.contact||'').replace(/\D/g,'').slice(-3)))].filter(x=>/^\d{3}$/.test(x));
- const content=os.map(o=>`<article class="listItem adminOrderCard" data-sales-channel="${H(o.salesChannel||'wanye')}"><label class="batchOrderLabel"><input class="pickOrder" type="checkbox" value="${H(o.id)}" data-status="${H(o.status)}"> 勾選這筆訂單</label><div class="row between"><span class="tag">${H(statusName[o.status]||o.status)}</span><small>${date(o.createdAt)}</small></div><div class="row between"><b>${H(o.customerName||'未提供姓名')}</b><b class="price">${money(o.amountTwd)}</b></div><p><span class="tag">${H(o.shopLabel||'頑夜 TOY')} · ×${Number(o.fxRate||0.25).toFixed(2)}</span></p><p><small>手機：${H(o.contact)}　｜　LINE：${H(o.lineId||'舊訂單未填')}</small></p><p><small>配送：${H(shipLabel(o.shippingType,o.salesChannel||'wanye'))}</small></p>${o.freight!==null?`<p class="hint">運費報價：${o.freightJpy!==null?yen(o.freightJpy)+' × '+Number(o.freightFxRate||(o.salesChannel==='partner'?0.27:0.25)).toFixed(2)+' ＝ ':'舊版台幣報價：'}${money(o.freight)}</p>`:''}${o.paymentGroupId?`<p class="shipmentTag">合併匯款 ${paymentGroups.get(String(o.paymentGroupId))?.length||'?'} 筆 · 這一組共 ${money((paymentGroups.get(String(o.paymentGroupId))||[]).reduce((n,x)=>n+Number(x.amountTwd||0),0))} · 只需一筆入帳，同組一起確認收款</p>`:''}${o.shipmentGroupId?`<p class="shipmentTag">合併配送組：${H(o.shipmentGroupId)} ${o.shipmentLeader?'· 主單':''}</p>`:''}<div class="orderProducts">${o.items.map(i=>`<div class="orderLine"><span class="orderItemWithImage"><img src="${THUMB_PLACEHOLDER}" data-photo-id="${H(i.id)}" alt="商品" loading="lazy">商品 × ${i.qty}</span><span>${yen(i.price*i.qty)}</span></div>`).join('')}</div>${o.deadline?`<p class="hint">匯款截止：${date(o.deadline)}</p>`:''}${o.paymentRef?`<p class="hint">轉帳末五碼：${H(o.paymentRef)}</p>`:''}${isDirectShipping(o.shippingType)?`<details><summary>日本郵便收件資料（中英文）</summary><p>${H([o.receiver,o.receiverPhone,o.receiverAddress].join('　'))}</p><p class="hint">英文收件姓名：${H(o.receiverNameEn||'舊單待補')}<br>英文地址：${H(o.receiverAddressEn||'舊單待補')}<br>郵遞區號：${H(o.receiverPostalCode||'未填')} · TAIWAN</p><div class="row"><button data-copy-jp="${H(o.id)}">複製日本郵便收件資訊</button><button data-fix-jp="${H(o.id)}">編輯英文資料</button></div></details>`:''}<div class="row adminActions">${(actionList[o.status]||[]).map(x=>`<button data-order-id="${H(o.id)}" data-act="${H(x[0])}">${H(x[1])}</button>`).join('')}${['BOUGHT','SHIPPING_SELECTED','SHIPPED'].includes(o.status)&&o.shippingType?`<button data-order-id="${H(o.id)}" data-act="freight">設定運費報價</button>`:''}<button data-order-id="${H(o.id)}" data-act="updateCustomer">修正手機／LINE ID</button></div></article>`).join('');
- $('#adminInner').innerHTML=`<section class="panel"><h2>待通知匯款（共 ${queue.count} 筆）</h2><label class="hint">通知來源 <select class="filterSelect" id="pendingChannel" onchange="refreshPendingLabel()"><option value="wanye">頑夜 ×0.25</option><option value="partner">合作廠商 ×0.27</option></select></label><p class="hint">先在訂單按「可以購買」，就會出現在這裡；複製文字後自行貼到 LINE 社群通知。</p><div class="row"><button class="primary" onclick="copyPendingTails()">複製手機末三碼</button><button onclick="copyPendingMessage()">複製 LINE 匯款通知文</button></div><p class="hint" id="pendingChannelSummary"></p><p class="hint">提醒：不同手機可能有相同末三碼，請以個人訂單頁的付款資訊為準。</p></section><section class="panel"><div class="row between"><h2>訂單管理（最近100筆）</h2><button onclick="exportCsv('orders')">匯出全部訂單</button><label class="hint">顯示來源 <select class="filterSelect" id="adminOrderChannel" onchange="filterAdminOrderCards()"><option value="">全部</option><option value="wanye">頑夜 ×0.25</option><option value="partner">合作廠商 ×0.27</option></select></label></div><div class="adminBatchOrderPanel"><p class="hint">勾選下方訂單後批次操作；只能確認符合目前狀態的訂單，狀態不合會提示而不更新。</p><div class="row"><button onclick="selectOrdersByStatus('PAYMENT_REPORTED')">選待核帳</button><button onclick="selectOrdersByStatus('PAID')">選待購買</button><button onclick="selectOrdersByStatus('BOUGHT')">選已購得</button><button onclick="selectOrdersByStatus('')">清除勾選</button></div><div class="row"><button onclick="mergeSelectedOrdersNow()">合併勾選訂單配送</button><button onclick="unmergeSelectedOrdersNow()">取消合併配送</button></div><p class="hint">配送合單限同手機、同配送方式及收件資料、已付款且已購得的訂單；各筆商品款與核帳紀錄保留，運費由最早一筆主單統一報價。合併後整組一起出貨。</p><div class="row"><button class="primary" onclick="bulkOrderActionNow('paid')">批量確認收款</button><button class="primary" onclick="bulkOrderActionNow('bought')">批量確認買到貨</button><button class="primary" onclick="bulkOrderActionNow('shipped')">批量確認出貨</button></div></div>${content||'<p>目前沒有訂單</p>'}</section>`;
+ const content=os.map(o=>`<article class="listItem adminOrderCard" data-sales-channel="${H(o.salesChannel||'wanye')}"><label class="batchOrderLabel"><input class="pickOrder" type="checkbox" value="${H(o.id)}" data-status="${H(o.status)}"> 勾選這筆訂單</label><div class="row between"><span class="tag">${H(statusName[o.status]||o.status)}</span><small>${date(o.createdAt)}</small></div><div class="row between"><b>${H(o.customerName||'未提供姓名')}</b><b class="price">${money(o.amountTwd)}</b></div><p><span class="tag">${H(o.shopLabel||'頑夜 TOY')} · ×${Number(o.fxRate||0.25).toFixed(2)}</span></p><p><small>手機：${H(o.contact)}　｜　LINE：${H(o.lineId||'舊訂單未填')}</small></p><p><small>配送：${H(shipLabel(o.shippingType,o.salesChannel||'wanye'))}</small></p>${o.freight!==null?`<p class="hint">運費報價：${o.freightJpy!==null?yen(o.freightJpy)+' × '+Number(o.freightFxRate||(o.salesChannel==='wanye'?0.25:0.27)).toFixed(2)+' ＝ ':'舊版台幣報價：'}${money(o.freight)}</p>`:''}${o.paymentGroupId?`<p class="shipmentTag">合併匯款 ${paymentGroups.get(String(o.paymentGroupId))?.length||'?'} 筆 · 這一組共 ${money((paymentGroups.get(String(o.paymentGroupId))||[]).reduce((n,x)=>n+Number(x.amountTwd||0),0))} · 只需一筆入帳，同組一起確認收款</p>`:''}${o.shipmentGroupId?`<p class="shipmentTag">合併配送組：${H(o.shipmentGroupId)} ${o.shipmentLeader?'· 主單':''}</p>`:''}<div class="orderProducts">${o.items.map(i=>`<div class="orderLine"><span class="orderItemWithImage"><img src="${THUMB_PLACEHOLDER}" data-photo-id="${H(i.id)}" alt="商品" loading="lazy">商品 × ${i.qty}</span><span>${yen(i.price*i.qty)}</span></div>`).join('')}</div>${o.deadline?`<p class="hint">匯款截止：${date(o.deadline)}</p>`:''}${o.paymentRef?`<p class="hint">轉帳末五碼：${H(o.paymentRef)}</p>`:''}${isDirectShipping(o.shippingType)?`<details><summary>日本郵便收件資料（中英文）</summary><p>${H([o.receiver,o.receiverPhone,o.receiverAddress].join('　'))}</p><p class="hint">英文收件姓名：${H(o.receiverNameEn||'舊單待補')}<br>英文地址：${H(o.receiverAddressEn||'舊單待補')}<br>郵遞區號：${H(o.receiverPostalCode||'未填')} · TAIWAN</p><div class="row"><button data-copy-jp="${H(o.id)}">複製日本郵便收件資訊</button><button data-fix-jp="${H(o.id)}">編輯英文資料</button></div></details>`:''}<div class="row adminActions">${(actionList[o.status]||[]).map(x=>`<button data-order-id="${H(o.id)}" data-act="${H(x[0])}">${H(x[1])}</button>`).join('')}${['BOUGHT','SHIPPING_SELECTED','SHIPPED'].includes(o.status)&&o.shippingType?`<button data-order-id="${H(o.id)}" data-act="freight">設定運費報價</button>`:''}<button data-order-id="${H(o.id)}" data-act="updateCustomer">修正手機／LINE ID</button></div></article>`).join('');
+ $('#adminInner').innerHTML=`<section class="panel"><h2>待通知匯款（共 ${queue.count} 筆）</h2><label class="hint">通知來源 <select class="filterSelect" id="pendingChannel" onchange="refreshPendingLabel()"><option value="wanye">頑夜 ×0.25</option><option value="partner">瘋Toys ×0.27</option><option value="xiangwan">享頑一番 ×0.27</option><option value="marushima">丸島賞 ×0.27</option></select></label><p class="hint">先在訂單按「可以購買」，就會出現在這裡；複製文字後自行貼到 LINE 社群通知。</p><div class="row"><button class="primary" onclick="copyPendingTails()">複製手機末三碼</button><button onclick="copyPendingMessage()">複製 LINE 匯款通知文</button></div><p class="hint" id="pendingChannelSummary"></p><p class="hint">提醒：不同手機可能有相同末三碼，請以個人訂單頁的付款資訊為準。</p></section><section class="panel"><div class="row between"><h2>訂單管理（最近100筆）</h2><button onclick="exportCsv('orders')">匯出全部訂單</button><label class="hint">顯示來源 <select class="filterSelect" id="adminOrderChannel" onchange="filterAdminOrderCards()"><option value="">全部</option><option value="wanye">頑夜 ×0.25</option><option value="partner">瘋Toys ×0.27</option><option value="xiangwan">享頑一番 ×0.27</option><option value="marushima">丸島賞 ×0.27</option></select></label></div><div class="adminBatchOrderPanel"><p class="hint">勾選下方訂單後批次操作；只能確認符合目前狀態的訂單，狀態不合會提示而不更新。</p><div class="row"><button onclick="selectOrdersByStatus('PAYMENT_REPORTED')">選待核帳</button><button onclick="selectOrdersByStatus('PAID')">選待購買</button><button onclick="selectOrdersByStatus('BOUGHT')">選已購得</button><button onclick="selectOrdersByStatus('')">清除勾選</button></div><div class="row"><button onclick="mergeSelectedOrdersNow()">合併勾選訂單配送</button><button onclick="unmergeSelectedOrdersNow()">取消合併配送</button></div><p class="hint">配送合單限同手機、同配送方式及收件資料、已付款且已購得的訂單；各筆商品款與核帳紀錄保留，運費由最早一筆主單統一報價。合併後整組一起出貨。</p><div class="row"><button class="primary" onclick="bulkOrderActionNow('paid')">批量確認收款</button><button class="primary" onclick="bulkOrderActionNow('bought')">批量確認買到貨</button><button class="primary" onclick="bulkOrderActionNow('shipped')">批量確認出貨</button></div></div>${content||'<p>目前沒有訂單</p>'}</section>`;
  document.querySelectorAll('[data-order-id]').forEach(b=>b.onclick=()=>doOrderAction(b.dataset.orderId,b.dataset.act));
  document.querySelectorAll('[data-copy-jp]').forEach(b=>b.onclick=()=>copyJapanPostLabel(b.dataset.copyJp));
  document.querySelectorAll('[data-fix-jp]').forEach(b=>b.onclick=()=>editJapanPostLabel(b.dataset.fixJp));
@@ -940,9 +946,9 @@ async function doOrderAction(id,act){const msg={available:'確認現場可買到
  if(act==='freight'){
   const o=(state.adminOrders||[]).find(x=>String(x.id)===String(id));
   if(!o)return notify('找不到訂單，請重新整理',true);
-  const rate=o.salesChannel==='partner'?0.27:0.25;
+  const rate=o.salesChannel==='wanye'?0.25:0.27;
   const original=o.freightJpy!==null?String(o.freightJpy):'';
-  const input=prompt('請輸入運費日幣整數（0 代表免運）\n'+(o.salesChannel==='partner'?'瘋Toys':'頑夜')+'匯率 ×'+rate.toFixed(2)+'\n系統自動換算台幣；舊版台幣報價不會自動反推日幣。',original);
+  const input=prompt('請輸入運費日幣整數（0 代表免運）\n'+(o.shopLabel||'頑夜')+'匯率 ×'+rate.toFixed(2)+'\n系統自動換算台幣；舊版台幣報價不會自動反推日幣。',original);
   if(input===null)return;
   if(!/^\d+$/.test(input.trim())||!Number.isSafeInteger(Number(input))||Number(input)>10000000)return notify('請輸入 0～10,000,000 的日幣整數',true);
   freightJpy=Number(input.trim());
@@ -952,12 +958,16 @@ async function doOrderAction(id,act){const msg={available:'確認現場可買到
  if(act==='shipped'){tracking=prompt('寄件單號或取件說明（可留空）');if(tracking===null)return;}
  try{await rpc('orderAction',{token:state.token,id,act,freightJpy,tracking,phone,lineId});notify('訂單資料已更新');adminOrders();}catch(e){notify(e.message,true);}}
 async function adminSettings(){const o=await rpc('adminInfo',{token:state.token});
- $('#adminInner').innerHTML=`<section class="panel" style="max-width:600px"><h2>雙商城收款銀行設定</h2><p class="hint">商品、庫存、Google Drive 共用，兩個入口從同一份資料產生。請在 GitHub Pages 的「頑夜首頁」與「/funtoys/」開啟雙商城。</p><p class="notice">待確認商品須由你按「可以購買」才顯示收款資訊；立即付款商品下單成功就會顯示銀行資料。</p><h3>頑夜入口（×0.25）</h3><div class="field"><label>銀行名稱</label><input id="bankName" value="${H(o.bankName)}" placeholder="例如 XX銀行"></div><div class="field"><label>戶名</label><input id="bankHolder" value="${H(o.bankHolder)}"></div><div class="field"><label>銀行帳號</label><input id="bankAccount" value="${H(o.bankAccount)}"></div><button class="primary" onclick="saveBank('wanye')">儲存頑夜銀行</button><hr><h3>合作廠商入口（×0.27）</h3><div class="field"><label>合作廠商商城名稱</label><input id="partnerShopTitle" value="${H(o.partnerShopTitle||'合作廠商')}" maxlength="50"></div><button onclick="savePartnerShopTitle()">儲存合作廠商名稱</button><div class="field"><label>銀行名稱</label><input id="partnerBankName" value="${H(o.partnerBankName)}" placeholder="合作廠商銀行"></div><div class="field"><label>戶名</label><input id="partnerBankHolder" value="${H(o.partnerBankHolder)}"></div><div class="field"><label>銀行帳號</label><input id="partnerBankAccount" value="${H(o.partnerBankAccount)}"></div><button class="primary" onclick="saveBank('partner')">儲存合作廠商銀行</button><p class="hint">銀行資訊按訂單所屬商城獨立帶出；不要把店主後台密碼提供給合作廠商。</p><p class="muted">本版為人工核帳，系統不會自動查到銀行實際入帳。</p></section>`;}
+ $('#adminInner').innerHTML=`<section class="panel" style="max-width:600px"><h2>四商城收款銀行設定</h2><p class="hint">四個商城共用商品、庫存與 Google Drive；三家合作商城共用目前的合作廠商收款設定，結單依訂單來源分開記錄。</p><p class="notice">待確認商品須由你按「可以購買」才顯示收款資訊；立即付款商品下單成功就會顯示銀行資料。</p><h3>頑夜入口（×0.25）</h3><div class="field"><label>銀行名稱</label><input id="bankName" value="${H(o.bankName)}" placeholder="例如 XX銀行"></div><div class="field"><label>戶名</label><input id="bankHolder" value="${H(o.bankHolder)}"></div><div class="field"><label>銀行帳號</label><input id="bankAccount" value="${H(o.bankAccount)}"></div><button class="primary" onclick="saveBank('wanye')">儲存頑夜銀行</button><hr><h3>合作廠商共用收款資料（×0.27）</h3><div class="field"><label>合作廠商商城名稱</label><input id="partnerShopTitle" value="${H(o.partnerShopTitle||'合作廠商')}" maxlength="50"></div><button onclick="savePartnerShopTitle()">儲存合作廠商名稱</button><div class="field"><label>銀行名稱</label><input id="partnerBankName" value="${H(o.partnerBankName)}" placeholder="合作廠商銀行"></div><div class="field"><label>戶名</label><input id="partnerBankHolder" value="${H(o.partnerBankHolder)}"></div><div class="field"><label>銀行帳號</label><input id="partnerBankAccount" value="${H(o.partnerBankAccount)}"></div><button class="primary" onclick="saveBank('partner')">儲存合作廠商銀行</button><p class="hint">頑夜 ×0.25 與合作廠商 ×0.27 分開；三家合作商城目前共用這組銀行帳戶，但訂單與結單各自區分。不要將店主後台密碼提供給合作廠商。</p><p class="muted">本版為人工核帳，系統不會自動查到銀行實際入帳。</p></section>`;}
 async function savePartnerShopTitle(){try{const r=await rpc('setPartnerTitle',{token:state.token,name:$('#partnerShopTitle').value});notify('已儲存：'+r.name+'（需重新整理前台才會顯示）');}catch(e){notify(e.message,true);}}
 async function saveBank(ch='wanye'){try{const p=ch==='partner'?'partnerBank':'bank';await rpc('setBank',{token:state.token,bankChannel:ch,name:$('#'+p+'Name').value,holder:$('#'+p+'Holder').value,account:$('#'+p+'Account').value});notify((ch==='partner'?'合作廠商':'頑夜')+'收款資料已儲存');}catch(e){notify(e.message,true);}}
 
 // V10.0.2：只改 UI；帳款資格與分潤金額均以 GAS 回傳及驗證為準。
 let vendorSettleSnapshot=null;
+let vendorCurrentChannel='partner';
+const vendorBrandNames={partner:'瘋Toys',xiangwan:'享頑一番',marushima:'丸島賞'};
+function vendorShopName(){return vendorBrandNames[vendorCurrentChannel]||'合作廠商';}
+function vendorChangeBrand(ch){if(!vendorBrandNames[ch])return;vendorCurrentChannel=ch;adminVendorSettlement();}
 let vendorActiveTab='pending';
 let vendorCurrentPreset='all';
 let vendorSettlementBusy=false;
@@ -1022,7 +1032,7 @@ function renderVendorSettlementList(){
  if(!vendorSettleSnapshot)return;
  const os=vendorPeriodItems(),pending=os.filter(o=>o.eligible&&!o.settled),done=os.filter(o=>o.settled),alerts=os.filter(o=>o.refundAlert),review=os.filter(o=>!o.settled&&!o.eligible);
  const stats=$('#vendorStats');
- if(stats)stats.innerHTML=`<div class="vendorStat primaryStat"><small>目前待付給瘋Toys</small><strong>${vendorMoney(vendorSum(pending,'commissionTwd'))}</strong></div><div class="vendorStat"><small>可結算訂單</small><strong>${pending.length} 筆</strong></div><div class="vendorStat"><small>已結算分潤</small><strong>${vendorMoney(vendorSum(done,'commissionTwd'))}</strong></div><div class="vendorStat ${alerts.length?'warningStat':''}"><small>退款扣回提醒</small><strong>${alerts.length} 筆</strong></div>`;
+ if(stats)stats.innerHTML=`<div class="vendorStat primaryStat"><small>目前待付給${vendorShopName()}</small><strong>${vendorMoney(vendorSum(pending,'commissionTwd'))}</strong></div><div class="vendorStat"><small>可結算訂單</small><strong>${pending.length} 筆</strong></div><div class="vendorStat"><small>已結算分潤</small><strong>${vendorMoney(vendorSum(done,'commissionTwd'))}</strong></div><div class="vendorStat ${alerts.length?'warningStat':''}"><small>退款扣回提醒</small><strong>${alerts.length} 筆</strong></div>`;
  const tabCounts={pending:pending.length,settled:done.length,review:review.length,alert:alerts.length,all:os.length};
  document.querySelectorAll('[data-vendor-tab]').forEach(btn=>{const v=btn.getAttribute('data-vendor-tab');btn.classList.toggle('on',v===vendorActiveTab);btn.setAttribute('aria-pressed',String(v===vendorActiveTab));const c=btn.querySelector('.vendorTabCount');if(c)c.textContent=tabCounts[v]||0;});
  document.querySelectorAll('[data-vendor-preset]').forEach(btn=>{const selected=btn.getAttribute('data-vendor-preset')===vendorCurrentPreset;btn.classList.toggle('on',selected);btn.setAttribute('aria-pressed',String(selected));});
@@ -1048,11 +1058,12 @@ function renderVendorSettlementList(){
  updateVendorPicked();
 }
 async function adminVendorSettlement(){
- const raw=await rpc('vendorSettlementData',{token:state.token});vendorSettleSnapshot=raw;
+ const raw=await rpc('vendorSettlementData',{token:state.token,vendorChannel:vendorCurrentChannel});vendorSettleSnapshot=raw;
  vendorActiveTab='pending';vendorCurrentPreset='all';vendorSettlementBusy=false;
  const batches=(raw.batches||[]).slice(0,100);
  $('#adminInner').innerHTML=`<section class="panel vendorPanel">
- <div class="vendorIntro"><div><div class="vendorKicker">VENDOR SETTLEMENT · ×0.03</div><h2>瘋Toys 廠商結單</h2><p>可結算訂單須為瘋Toys（×0.27）已確認收款且未退款；每筆商品日幣金額 ×0.03，四捨五入為台幣分潤。國際運費不分潤。</p></div><button class="vendorExport" onclick="exportVendorSettlementCsv()">匯出目前篩選 CSV</button></div>
+ <div class="vendorIntro"><div><div class="vendorKicker">VENDOR SETTLEMENT · ×0.03</div><h2>${vendorShopName()} 廠商結單</h2><p>依目前選擇的廠商分開核帳（×0.27），商品日幣總額 ×0.03，四捨五入為台幣分潤；不包含國際運費。</p></div><button class="vendorExport" onclick="exportVendorSettlementCsv()">匯出目前篩選 CSV</button></div>
+ <div class="vendorBrandChooser"><label for="vendorBrand">結單廠商</label><select id="vendorBrand" onchange="vendorChangeBrand(this.value)"><option value="partner" ${vendorCurrentChannel==='partner'?'selected':''}>瘋Toys</option><option value="xiangwan" ${vendorCurrentChannel==='xiangwan'?'selected':''}>享頑一番</option><option value="marushima" ${vendorCurrentChannel==='marushima'?'selected':''}>丸島賞</option></select><small>各家分開計算與結算，訂單不混用</small></div>
  <div id="vendorStats" class="vendorStats"></div>
  <div class="vendorPeriodShortcuts" role="group" aria-label="快速選擇下單日期">
  <button type="button" data-vendor-preset="all" onclick="vendorPreset('all')">全部日期</button>
@@ -1075,7 +1086,7 @@ async function adminVendorSettlement(){
  <div id="vendorRows" class="vendorRows"></div>
  <div id="vendorActionBar" class="vendorActionBar"><div class="vendorActionSummary"><span id="vendorSelectedCount">已選 0 筆訂單</span><strong id="vendorSelectedAmount">NT$0</strong></div>
  <div class="vendorActionGrid"><div><label for="vendorSettlementNote">匯款備註（選填：日期、末五碼）</label><input id="vendorSettlementNote" maxlength="120" placeholder="例如 10/25 轉帳，末五碼 12345"></div><button id="vendorPayConfirm" type="button" class="primary" onclick="confirmVendorSettlementNow()" disabled>確認已匯款並結單</button></div>
- <div class="vendorActionFoot">只有已實際匯給瘋Toys 的款項才按「確認已匯款」。系統只記帳，不會自動轉帳；確認後不可重複結算。</div></div>
+ <div class="vendorActionFoot">只有已實際匯給${vendorShopName()} 的款項才按「確認已匯款」。系統只記帳，不會自動轉帳；確認後不可重複結算。</div></div>
  <details class="vendorBatchHistory"><summary>查看結單批次歷史（${batches.length} 筆顯示）</summary><div class="vendorBatchHistoryInner">${batches.map(b=>`<div class="vendorHistoryLine"><div><strong>${H(b.batchId)}</strong><small>${date(b.settledAt)} · ${Number(b.count)||0} 筆訂單</small><small>${H(b.note||'無備註')}</small></div><b>${vendorMoney(b.commissionTwd)}</b></div>`).join('')||'<p class="muted">目前沒有已確認結算的批次。</p>'}</div></details>
  </section>`;
  renderVendorSettlementList();
@@ -1086,10 +1097,10 @@ async function confirmVendorSettlementNow(){
  if(!ids.length)return notify('請先勾選可結算的訂單',true);
  if(ids.length>100)return notify('每批最多結算 100 筆',true);
  const amount=vendorSum(records,'commissionTwd'),note=($('#vendorSettlementNote')?.value||'').trim();
- if(!confirm(`請確認「已實際匯款」給瘋Toys：\n\n訂單 ${ids.length} 筆\n廠商應得 ${vendorMoney(amount)}\n\n確認後會留下結算紀錄，且不能重複結算。`))return;
+ if(!confirm(`請確認「已實際匯款」給${vendorShopName()}：\n\n訂單 ${ids.length} 筆\n廠商應得 ${vendorMoney(amount)}\n\n確認後會留下結算紀錄，且不能重複結算。`))return;
  vendorSettlementBusy=true;updateVendorPicked();
  try{
-  const r=await rpc('confirmVendorSettlement',{token:state.token,ids,note});
+  const r=await rpc('confirmVendorSettlement',{token:state.token,ids,note,vendorChannel:vendorCurrentChannel});
   notify(`已記錄結算 ${r.count} 筆，${vendorMoney(r.commissionTwd)} · ${r.batchId}`);
   await adminVendorSettlement();
  }catch(e){notify(e.message,true);vendorSettlementBusy=false;updateVendorPicked();}
@@ -1100,7 +1111,7 @@ function exportVendorSettlementCsv(){
  const cell=x=>'"'+String(x===undefined||x===null?'':x).replace(/^[\s]*[=+\-@]/,"'").replace(/"/g,'""')+'"';
  const lines=[head,...os.map(o=>[o.id,new Date(o.createdAt).toLocaleDateString('zh-TW'),o.paidAt?new Date(o.paidAt).toLocaleDateString('zh-TW'):'',statusName[o.status]||o.status,o.customerName,o.totalJpy,o.amountTwd,o.commissionTwd,o.retainedTwd,o.settled?'已結':'未結',o.batchId,o.settledAt?new Date(o.settledAt).toLocaleString('zh-TW'):'',o.note,o.refundAlert?'需要人工扣回':''])];
  const csv='\uFEFF'+lines.map(row=>row.map(cell).join(',')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
- a.href=url;a.download='瘋Toys_結單_'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+ a.href=url;a.download=vendorShopName()+'_結單_'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
 async function exportCsv(type){try{const d=await rpc('export',{token:state.token,type});function cv(v){let s=String(v===null||v===undefined?'':v);if(/^[\s]*[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
