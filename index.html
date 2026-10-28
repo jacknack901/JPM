@@ -459,7 +459,7 @@ body.brand-v105.brand-marushima{--studioBg:#f8f6ec;--studioPaper:#fffdf7;--studi
 }
 
 
-/* V10.10 四商城商品直達版 - 手機進站立即看商品 */
+/* V10.11 四商城商品直達版 - 手機進站立即看商品 */
 :root{scroll-behavior:smooth}
 body.jpm-product-first .wrap{max-width:1260px}
 body.jpm-product-first .brand{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:80px;padding:12px 18px!important;margin-bottom:0!important}
@@ -544,7 +544,7 @@ body.jpm-product-first.brand-marushima .brandRealLogo{mix-blend-mode:screen}
 }
 
 
-/* V10.10 MOBILE HOTFIX - fix historical sticky top + fixed bottom collision */
+/* V10.11 MOBILE HOTFIX - fix historical sticky top + fixed bottom collision */
 html { overflow-x:clip; }
 body.jpm-product-first { overflow-x:clip; }
 body.jpm-product-first .wrap { min-width:0; }
@@ -630,12 +630,21 @@ body.jpm-product-first .adminOverlay { z-index:1500!important; }
  body.jpm-product-first .product .info{padding:7px!important;}
 }
 
+
+/* V10.11 圖片載入：圖片未顯示前保留卡片比例，避免手機版跳動 */
+.product .photoWrap{position:relative;aspect-ratio:1/1;overflow:hidden}
+.product .photoWrap img.photo{width:100%;height:100%;aspect-ratio:1;object-fit:contain}
+.product .photo{transition:opacity .15s ease}
+.product .photo:not(.loaded){opacity:.68}
+.product .photo.loaded{opacity:1}
+@media(max-width:620px){.product .photoWrap{aspect-ratio:1/1}.product .photoWrap .photo{max-width:100%;height:100%;object-fit:contain}}
+
 </style></head>
 <body data-channel="wanye" data-shop-name="頑夜 TOY" class="brand-wanye brand-v105 jpm-product-first"><main class="wrap">
  <header class="brand"><div class="brandLogo"><div class="brandLogoPicture"><img class="brandRealLogo" src="assets/brand-logo.png" alt="頑夜 TOY 官方標誌" loading="eager"></div><div class="brandText"><h1 id="shopBrand">頑夜 TOY</h1><small>夜色裡的玩具收藏基地</small></div></div><span class="headerTag" id="shopBadge">日本連線 · ×0.25</span></header>
  <nav class="nav"><button id="tabShop" onclick="switchTab('shop')" class="active">逛商品</button><button id="tabCart" onclick="switchTab('cart')">購物車 <span id="cartCount">0</span></button><button id="tabOrder" onclick="switchTab('order')">查詢訂單</button></nav>
  <div id="content"></div>
- <footer class="siteFooter"><span>© <span id="footerShop">頑夜 TOY</span> · 日圓換算報價 <span id="footerRate">×0.25</span> · 運費另計 · V10.10</span><button class="adminSecret" aria-label="開啟店主後台" title="店主" onclick="openAdmin()">⚙</button></footer>
+ <footer class="siteFooter"><span>© <span id="footerShop">頑夜 TOY</span> · 日圓換算報價 <span id="footerRate">×0.25</span> · 運費另計 · V10.11</span><button class="adminSecret" aria-label="開啟店主後台" title="店主" onclick="openAdmin()">⚙</button></footer>
 </main><div id="adminOverlay" hidden class="adminOverlay" onclick="if(event.target===this)closeAdmin()"><aside class="adminDrawer" role="dialog" aria-modal="true" aria-labelledby="adminTitle"><header class="adminTop"><div><small>MANAGEMENT</small><h2 id="adminTitle">店主後台</h2></div><button class="closeAdmin" aria-label="關閉後台" onclick="closeAdmin()">✕</button></header><div id="adminSurface"></div></aside></div><div id="toast" hidden class="flash"></div>
 <script>
 // JPM V9.6.2：此網頁直接指定已確認的 GAS 部署網址，避免舊 config.js 快取導致未連線。
@@ -652,7 +661,7 @@ const state={tab:'shop',items:[],total:0,offset:0,search:'',store:'',category:''
 const $=s=>document.querySelector(s), H=s=>String(s===null||s===undefined?'':s).replace(/[&<>"']/g,c=>({'&':'&','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const STORES=['未指定店家','安麗美特','唐吉訶德','藥妝店','其他店家'];
 const PURCHASE_TERMS_VERSION='2026-10-24-v2';
-const CATEGORIES=['未分類','卡牌類','公仔類','家電類','雜物類','扭蛋類','陀螺逆轉金幣類'];
+const CATEGORIES=['未分類','卡牌類','公仔類','家電類','雜物類','扭蛋類','陀螺逆轉金幣類','盲盒','周邊'];
 
 const CATEGORY_ICON_MAP={
  '公仔類':'🎎',
@@ -665,7 +674,7 @@ const CATEGORY_ICON_MAP={
 };
 function renderCompactCategories(){
  const all=`<button type="button" class="categoryChip ${!state.category?'active':''}" onclick="quickCategory('')">全部</button>`;
- return `<div class="categoryRail" role="group" aria-label="商品分類">${all}`+CATEGORIES.map(v=>`<button type="button" class="categoryChip ${state.category===v?'active':''}" onclick="quickCategory('${v}')">${CATEGORY_ICON_MAP[v]||'•'} ${v}</button>`).join('')+`</div>`;
+ return `<div class="categoryRail" role="group" aria-label="商品分類">${all}`+CATEGORIES.filter(v=>v!=='盲盒'&&v!=='周邊').map(v=>`<button type="button" class="categoryChip ${state.category===v?'active':''}" onclick="quickCategory('${v}')">${CATEGORY_ICON_MAP[v]||'•'} ${v}</button>`).join('')+`</div>`;
 }
 
 function opts(list,selected,allLabel){return (allLabel?`<option value="">${H(allLabel)}</option>`:'')+list.map(v=>`<option value="${H(v)}" ${v===selected?'selected':''}>${H(v)}</option>`).join('');}
@@ -705,42 +714,102 @@ function rpc(action,arg={}){return window.NightBridge.rpc(action,Object.assign({
 async function run(p){try{return await p;}catch(e){notify(e.message,true);throw e;}}
 // Google Drive 縮圖不直接外連：GAS 使用店主帳號取 getThumbnail()，避免公開權限/跨站圖片失敗。
 const THUMB_PLACEHOLDER='data:image/svg+xml;charset=utf-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><rect width="320" height="320" fill="#f3f1f7"/><path d="M96 220l60-77 36 38 26-31 35 70Z" fill="#d1c9dc"/><circle cx="117" cy="106" r="20" fill="#d1c9dc"/><text x="160" y="266" fill="#80758e" font-family="sans-serif" font-size="16" text-anchor="middle">'+(SHOP_CHANNEL==='partner'?'瘋Toys':'頑夜 TOY')+'</text></svg>');
+
+// V10.11: 首屏優先 + 兩組併發 + 每批6張 + IndexedDB離線圖片快取
 const thumbCache=new Map();let searchTimer;let imageFailures=0;
+const THUMB_DB='jpm-thumb-cache-v1011';const THUMB_TTL=24*60*60*1000;
+const thumbQueue=[],thumbPending=new Set();let thumbWorkers=0;
+let thumbObserver=null,thumbDbPromise=null;
 function scheduleSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(()=>{if(state.tab==='shop')searchNow();},350);}
-async function hydrateThumbs(root,admin=false){
- if(!root)return;
- const imgs=[...root.querySelectorAll('img[data-photo-id]')];
- const missing=[];
- for(const im of imgs){
-   const id=im.dataset.photoId,found=thumbCache.get(id);
-   if(im.dataset.errorBound!=='1'){
-     im.dataset.errorBound='1';
-     im.addEventListener('error',()=>{
-       if(im.src===THUMB_PLACEHOLDER)return;
-       im.src=THUMB_PLACEHOLDER;im.classList.remove('loaded');im.classList.add('thumbUnavailable');
-       im.title='圖片格式無法在這台裝置顯示，可至後台檢查圖檔格式';
-       const note=$('#photoErrorNote');if(note)note.hidden=false;
-     });
-   }
-   if(found){im.src=found;im.classList.add('loaded');}
-   else if(!missing.includes(id))missing.push(id);
- }
- for(let i=0;i<missing.length;i+=3){
-   const batch=missing.slice(i,i+3);
-   try{
-     const r=await rpc('thumbnails',{ids:batch,...(admin?{token:state.token}:{})});
-     for(const id of batch){
-       const url=r.images?.[id]; if(url)thumbCache.set(id,url);
-       for(const im of imgs.filter(el=>el.dataset.photoId===id&&el.isConnected)){
-         im.src=url||THUMB_PLACEHOLDER;
-         im.classList.toggle('loaded',!!url);
-         if(!url){im.title=r.failures?.[id]||'照片正在處理，請稍後重新整理';im.classList.add('thumbUnavailable');imageFailures++;const note=$('#photoErrorNote');if(note){note.hidden=false;note.title=im.title;}}
-       }
-     }
-   }catch(e){console.warn('縮圖載入中斷',e.message);const note=$('#photoErrorNote');if(note){note.hidden=false;note.title=e.message;}}
+function thumbDB(){
+ if(thumbDbPromise)return thumbDbPromise;
+ thumbDbPromise=new Promise(resolve=>{
+   if(!('indexedDB' in window)){resolve(null);return;}
+   try{const r=indexedDB.open(THUMB_DB,1);
+     r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('images'))r.result.createObjectStore('images');};
+     r.onsuccess=()=>resolve(r.result);r.onerror=()=>resolve(null);r.onblocked=()=>resolve(null);
+   }catch(e){resolve(null);}
+ });return thumbDbPromise;
+}
+async function readCachedThumb(id){
+ try{const db=await thumbDB();if(!db)return '';
+  return await new Promise(resolve=>{const tx=db.transaction('images','readonly'),req=tx.objectStore('images').get(id);
+   req.onsuccess=()=>{const v=req.result;resolve(v&&v.ts>Date.now()-THUMB_TTL&&typeof v.url==='string'?v.url:'');};
+   req.onerror=()=>resolve('');
+  });
+ }catch(e){return '';}
+}
+async function saveCachedThumb(id,url){
+ if(!url||url.length>1100000)return;
+ try{const db=await thumbDB();if(!db)return;
+  const tx=db.transaction('images','readwrite');tx.objectStore('images').put({url,ts:Date.now()},id);
+ }catch(e){}
+}
+function setThumbToDOM(id,url,msg){
+ document.querySelectorAll('img[data-photo-id]').forEach(im=>{
+   if(im.dataset.photoId!==id)return;
+   if(url){if(im.src!==url)im.src=url;im.classList.add('loaded');im.classList.remove('thumbUnavailable');}
+   else {im.title=msg||'圖片仍在處理中';im.classList.add('thumbUnavailable');}
+ });
+}
+function pushThumb(id,admin){
+ const k=String(id);if(!k||thumbCache.has(k)||thumbPending.has(k))return;
+ thumbPending.add(k);thumbQueue.push({id:k,admin:!!admin});runThumbQueue();
+}
+function runThumbQueue(){
+ while(thumbWorkers<2&&thumbQueue.length){
+   const work=thumbQueue.splice(0,6),ids=work.map(x=>x.id),admin=work.some(x=>x.admin);
+   thumbWorkers++;
+   rpc('thumbnails',{ids,...(admin&&state.token?{token:state.token}:{})})
+    .then(data=>{for(const id of ids){const url=data?.images?.[id]||'';
+      if(url){thumbCache.set(id,url);setThumbToDOM(id,url);saveCachedThumb(id,url);}
+      else{imageFailures++;setThumbToDOM(id,'',data?.failures?.[id]);const note=$('#photoErrorNote');if(note)note.hidden=false;}
+    }})
+    .catch(e=>{console.warn('圖片載入失敗',e);const note=$('#photoErrorNote');if(note)note.hidden=false;})
+    .finally(()=>{work.forEach(x=>thumbPending.delete(x.id));thumbWorkers--;runThumbQueue();});
  }
 }
-function retryVisiblePhotos(){thumbCache.clear();imageFailures=0;document.querySelectorAll('img[data-photo-id]').forEach(img=>{img.src=THUMB_PLACEHOLDER;img.classList.remove('loaded','thumbUnavailable');});const note=$('#photoErrorNote');if(note)note.hidden=true;hydrateThumbs($('#content'),false);if(state.token)hydrateThumbs($('#adminInner'),true);}
+async function ensureThumb(id,admin){
+ if(thumbCache.has(id)){setThumbToDOM(id,thumbCache.get(id));return;}
+ const stored=await readCachedThumb(id);
+ if(stored){thumbCache.set(id,stored);setThumbToDOM(id,stored);return;}
+ pushThumb(id,admin);
+}
+function thumbIsNearScreen(el){const r=el.getBoundingClientRect();return r.top<innerHeight+500&&r.bottom>-150;}
+function observeThumb(el,admin){
+ if(el.dataset.thumbObserved==='1')return;
+ el.dataset.thumbObserved='1';
+ if(!('IntersectionObserver' in window)){ensureThumb(el.dataset.photoId,admin);return;}
+ if(!thumbObserver){thumbObserver=new IntersectionObserver(entries=>{
+   entries.forEach(entry=>{if(entry.isIntersecting){thumbObserver.unobserve(entry.target);
+     ensureThumb(entry.target.dataset.photoId,entry.target.dataset.thumbAdmin==='1');}});
+ },{rootMargin:'500px 0px 500px 0px',threshold:0.01});}
+ el.dataset.thumbAdmin=admin?'1':'0';
+ if(thumbIsNearScreen(el)){ensureThumb(el.dataset.photoId,admin);return;}
+ thumbObserver.observe(el);
+}
+function hydrateThumbs(root,admin=false){
+ if(!root)return;
+ root.querySelectorAll('img[data-photo-id]').forEach(im=>{
+   const id=im.dataset.photoId;if(!id)return;
+   if(im.dataset.errorBound!=='1'){
+     im.dataset.errorBound='1';im.addEventListener('error',()=>{
+       if(im.src===THUMB_PLACEHOLDER)return;
+       im.src=THUMB_PLACEHOLDER;im.classList.remove('loaded');im.classList.add('thumbUnavailable');
+     });
+   }
+   if(thumbCache.has(id))setThumbToDOM(id,thumbCache.get(id));else observeThumb(im,admin);
+ });
+}
+function retryVisiblePhotos(){
+ thumbCache.clear();imageFailures=0;
+ document.querySelectorAll('img[data-photo-id]').forEach(im=>{
+   if(thumbObserver)thumbObserver.unobserve(im);
+   im.src=THUMB_PLACEHOLDER;im.dataset.thumbObserved='';im.classList.remove('loaded','thumbUnavailable');
+ });
+ const note=$('#photoErrorNote');if(note)note.hidden=true;
+ hydrateThumbs($('#content'),false);if(state.token)hydrateThumbs($('#adminInner'),true);
+}
 function switchTab(tab){state.tab=tab;window.scrollTo({top:0,behavior:'instant'});document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id.toLowerCase()==='tab'+tab));render();}
 function updateCart(){ $('#cartCount').textContent=state.cart.reduce((a,i)=>a+i.qty,0);try{localStorage.setItem(SHOP_PREFIX+'cart',JSON.stringify(state.cart));}catch(e){}}
 function addCart(id){
@@ -1099,6 +1168,14 @@ async function showAdminPanel(type){
    notify(e.message,true);
  }
 }
+async function aiClassifyNow(){
+ if(!state.token)return notify('請先登入後台',true);
+ try{const r=await rpc('aiClassifyNow',{token:state.token});
+  if(!r.ok)return notify(r.reason||'請先設定 GEMINI_API_KEY',true);
+  notify('AI 已處理 '+r.processed+' 張，完成分類 '+r.classified+' 張，待確認 '+r.review+' 張，失敗 '+r.failed+' 張');
+  await adminProducts();
+ }catch(e){notify('AI 辨識未完成：'+e.message,true);}
+}
 async function adminProducts(){
  const [info,data]=await Promise.all([
   rpc('adminInfo',{token:state.token}),
@@ -1122,7 +1199,7 @@ async function adminProducts(){
   $('#adminInner').innerHTML=`<section class="panel adminShortcuts">
   <div class="adminPanelTitle"><h2 style="margin:0">商品快速管理</h2><span class="tag">草稿 ${state.adminProductDraft?data.total:'切換可看全部'} 筆</span></div>
   <p class="muted">選好 Drive 分類資料夾放照片 → 同步 → 只輸入日圓售價、數量 → 上架</p>
-  <div class="row"><button id="syncBtn" class="primary" onclick="syncNow()">同步 Drive 照片</button><button onclick="openDriveTools()">圖片資料夾／檢查</button></div>
+  <div class="row"><button id="syncBtn" class="primary" onclick="syncNow()">同步 Drive 照片</button><button type="button" onclick="aiClassifyNow()" title="先在 GAS 專案設定加入 GEMINI_API_KEY">AI 辨識未分類商品</button><button onclick="openDriveTools()">圖片資料夾／檢查</button></div>
   <div id="syncSummary" class="adminStatus" ${state.syncMessage?'':'hidden'}>${H(state.syncMessage||'')}</div>
  </section>
  <section class="panel adminDrivePanel"><details class="adminAccordion" id="driveDetails" ${state.driveOpen?'open':''}><summary>Drive 進階設定與圖片診斷</summary><div class="adminAccordionBody">
